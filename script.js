@@ -89,11 +89,11 @@ module.exports = function (urlOrVidId) {
             var deferred        = Q.defer();
             var cropFilePath    = path.resolve(__dirname, 'tmp', 'crop-'+ ( + new Date() ) + '.mp4');
             this.download(cropFilePath)
-                .then(function () {
+                .then(function (info) {
                     gif(cropFilePath, filePath, '00', size, fps, function (err) {
                         fs.unlink(cropFilePath);
                         if(err) return deferred.reject(err);
-                        deferred.resolve();
+                        deferred.resolve(info);
                     })
                 }).catch(function(err) {
                     deferred.reject(err)
@@ -107,12 +107,17 @@ module.exports = function (urlOrVidId) {
             var ws              = fs.createWriteStream(videoFilePath);
             var move            = require('./modules/move');
             var deferred        = Q.defer();
+            var videoInfo = null;
+
             video.pipe(ws);
+            video.on('info', function(info) {
+                videoInfo = info;
+            })
             video.on('end', function() {
                 move(videoFilePath, filePath)
                     .then(function () {
                         fs.unlink(videoFilePath);
-                        deferred.resolve();
+                        deferred.resolve(videoInfo);
                     }).catch(function () {
                         fs.unlink(videoFilePath);
                         deferred.reject();
